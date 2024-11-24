@@ -52,8 +52,38 @@ const MAX_WAIT_TIME     = 10.0
 #=
 3. Parameters for Algorithm
 =#
-iteration = 500
-vns_params = VNSParameter(iteration,    # n_iter
+const DEGREE_TS_EXPLORATION = 3 # To the 3rd closest ts pair; dependes on the density of TS network
+const DEGREE_REGRET         = 3
+const DEGREE_DESTROY        = 0.3
+# @warn "Degree of ts exploration is $DEGREE_TS_EXPLORATION for $NETWORK network"
+
+
+# Start the main loop
+function main(num_cus::Int64; NETWORK::String = "cross")
+    instance = "l2-c$num_cus-d2-bt2"
+    max_recharge = 3 # the number of recharge operations
+    # folder = "$NETWORK/cgr_at_depot/$instance" # for cross TS network
+    # folder = "$NETWORK/$instance" # for cross TS network
+    folder = "$NETWORK/$instance" # for cross TS network
+    data_folder = "data/$NETWORK/cgr_at_depot/$instance"
+    @info "INSTANCE: $folder"
+    result_folder = "results/" * folder
+    # result_folder = "results/metaheuristics/" * folder * "/$iteration"
+    if !isdir(result_folder) mkdir(result_folder) end
+    eidarp, ts_network, ts_network_noshift = preprocess(data_folder, NETWORK, set_dummy_recharge = true, max_recharge = max_recharge);
+    # global T_END     = eidarp.t_end
+    non_zeros_tt = filter(x -> x!=0, eidarp.traveltime);
+    c̄ = mean(non_zeros_tt); # c̄ for T_max = t_max * c̄
+    # visualize(eidarp) # visualize the input instance
+
+    max_remove_cus = Int(ceil(DEGREE_DESTROY * num_cus))
+    # degree_destroy = generate_degree_destroy_iter(iteration, collect(1:DEGREE_DESTROY))
+    # degree_destroy = degree_destroy[1:iteration]
+    # degree_destroy =  rand(collect(1:DEGREE_DESTROY), iteration)
+    # degree_destroy =  DEGREE_DESTROY * ones(Int64, iteration)
+
+    iteration = 500
+    vns_params = VNSParameter(iteration,    # n_iter
                             1.1,        # T_max = t_max * c̄
                             100,        # T_red
                             1.05,       # α1: control the first local search
@@ -63,39 +93,6 @@ vns_params = VNSParameter(iteration,    # n_iter
                             true,       # early stop
                             200         # if no better solution after 200 iterations
                             )
-const DEGREE_TS_EXPLORATION = 3 # To the 3rd closest ts pair; dependes on the density of TS network
-const DEGREE_REGRET         = 3
-const DEGREE_DESTROY        = 0.3
-# @warn "Degree of ts exploration is $DEGREE_TS_EXPLORATION for $NETWORK network"
-
-
-# Start the main loop
-function main(num_cus::Int64, NETWORK::String, vns_params::VNSParameter)
-    instance = "l2-c$num_cus-d2-bt2"
-    max_recharge = 3 # the number of recharge operations
-    @error("Iteration number is $iteration")
-    # folder = "$NETWORK/cgr_at_depot/$instance" # for cross TS network
-    # folder = "$NETWORK/$instance" # for cross TS network
-    folder = "$NETWORK/cgr_at_depot/$instance" # for cross TS network
-    data_folder = "data/" * folder
-    @info "INSTANCE: $folder"
-    result_folder = "results/metaheuristics/" * folder
-    # result_folder = "results/metaheuristics/" * folder * "/$iteration"
-    if !isdir(result_folder) mkdir(result_folder) end
-    eidarp, ts_network, ts_network_noshift = preprocess(data_folder, NETWORK, set_dummy_recharge = true, max_recharge = max_recharge);
-    # global T_END     = eidarp.t_end
-    non_zeros_tt = filter(x -> x!=0, eidarp.traveltime);
-    c̄ = mean(non_zeros_tt); # c̄ for T_max = t_max * c̄
-    @warn "One transit node can only be visited by one bus"
-    @warn "TS repair can only accomadate Degree of destroy to 2"
-    @info "The initial battery level is $(initE*100)%"
-    # visualize(eidarp) # visualize the input instance
-
-    max_remove_cus = Int(ceil(DEGREE_DESTROY * num_cus))
-    # degree_destroy = generate_degree_destroy_iter(iteration, collect(1:DEGREE_DESTROY))
-    # degree_destroy = degree_destroy[1:iteration]
-    # degree_destroy =  rand(collect(1:DEGREE_DESTROY), iteration)
-    # degree_destroy =  DEGREE_DESTROY * ones(Int64, iteration)
     degree_destroy = generate_degree_destroy_equal_distribution(max_remove_cus, 1, iteration, result_folder, fig = true)
 
     # Algorithm starts here
@@ -117,4 +114,5 @@ function main(num_cus::Int64, NETWORK::String, vns_params::VNSParameter)
     return 
 end
 
-main(100, "cross", vns_params)
+num_cus = parse(Int, ARGS[1])  # Convert first argument to Int64
+main(num_cus)

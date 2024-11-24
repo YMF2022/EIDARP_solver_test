@@ -1,0 +1,2 @@
+Instance,ObjValue,No_reject_customer,BusTravelTime,CusTravelTime,TrainTravelTime,No_Bus,Bus_ID,ChargeTime,SolveTime,neighbor_change,No_iter
+l2-c10-d2-bt2,490.816647974652,0,295.0948183479309,195.7218296267211,43.0,7,"[1, 2, 3, 4, 5, 6, 7]",0.0,8.394999980926514,108,240
